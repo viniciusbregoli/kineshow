@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - Display</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(180deg, #0a1628 0%, #1a2a4a 50%, #0a1628 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(50, 100, 180, 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(50, 100, 180, 0.15) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* Main layout */
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content-side {
+            flex: 0 0 60%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .presenter-side {
+            flex: 0 0 40%;
+            display: flex;
+            align-items: center;
+            /* Center vertically if needed, but cover handles most */
+            justify-content: center;
+            padding: 0;
+            /* Remove all padding */
+            overflow: hidden;
+            /* Ensure image doesn't spill out if something goes wrong */
+            background: #000;
+            /* Fallback background */
+            height: 100vh;
+        }
+
+        .presenter-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* This makes it cover the entire area */
+            object-position: center;
+        }
+
+        .presenter-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, transparent 0%, rgba(50, 100, 180, 0.1) 100%);
+            border: 3px dashed rgba(100, 150, 220, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(100, 150, 220, 0.4);
+            font-size: 1.2rem;
+        }
+
+        /* Question box */
+        .question-box {
+            background: linear-gradient(180deg, #c41e3a 0%, #8b0000 100%);
+            border: 4px solid #fff;
+            border-color: #b8860b;
+            border-radius: 16px;
+            padding: 35px 45px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            position: relative;
+        }
+
+        .pin-corner {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #fff;
+            font-weight: 900;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+
+        .question-header-pin {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 1rem;
+            text-align: right;
+            margin-bottom: 5px;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .question-header {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .question-text {
+            color: #fff;
+            font-size: 1.9rem;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.4;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Options */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .option-item {
+            background: linear-gradient(180deg, #c41e3a 0%, #8b0000 100%);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 14px;
+            padding: 15px 28px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            cursor: default;
+            transition: all 0.3s ease;
+        }
+
+        /* Correct Answer Style */
+        .option-item.correct-answer {
+            background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+            transform: scale(1.02);
+            animation: reveal-pulse 1s infinite;
+            z-index: 10;
+        }
+
+        @keyframes reveal-pulse {
+            0% {
+                transform: scale(1.02);
+                box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+            }
+
+            50% {
+                transform: scale(1.08);
+                box-shadow: 0 0 50px rgba(46, 204, 113, 1);
+                border-color: #ffd700;
+            }
+
+            100% {
+                transform: scale(1.02);
+                box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+            }
+        }
+
+        /* Dim other options */
+        .options-list.revealed .option-item:not(.correct-answer) {
+            opacity: 0.5;
+            filter: grayscale(0.5);
+        }
+
+        .option-number {
+            width: 42px;
+            height: 42px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #0a1628;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-text {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Timer - Styled to be elegant and not ugly */
+        .timer-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .timer {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ffd700;
+            border: 4px solid #b8860b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #8b0000;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Waiting screen */
+        .waiting-content {
+            text-align: center;
+            color: #fff;
+        }
+
+        .waiting-title {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+            margin-bottom: 30px;
+        }
+
+        .waiting-pin-label {
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 15px;
+        }
+
+        .waiting-pin {
+            font-size: 6rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 20px;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+            margin-bottom: 25px;
+        }
+
+        .waiting-url {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 40px;
+        }
+
+        .waiting-players {
+            font-size: 1.4rem;
+            color: #5aafff;
+        }
+
+        /* Ranking */
+        .ranking-content {
+            color: #fff;
+        }
+
+        .ranking-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 35px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .ranking-list {
+            list-style: none;
+        }
+
+        .ranking-item {
+            background: linear-gradient(180deg, #2a5a9a 0%, #1a3a6a 100%);
+            border: 3px solid #5aafff;
+            border-radius: 14px;
+            padding: 18px 28px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .ranking-item:first-child {
+            background: linear-gradient(180deg, #ffd700 0%, #c9a800 100%);
+            border-color: #fff;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .ranking-item:first-child .ranking-name,
+        .ranking-item:first-child .ranking-score,
+        .ranking-item:first-child .ranking-position {
+            color: #1a1a2e;
+        }
+
+        .ranking-item:nth-child(2) {
+            background: linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 100%);
+            border-color: #fff;
+        }
+
+        .ranking-item:nth-child(2) .ranking-name,
+        .ranking-item:nth-child(2) .ranking-score,
+        .ranking-item:nth-child(2) .ranking-position {
+            color: #1a1a2e;
+        }
+
+        .ranking-item:nth-child(3) {
+            background: linear-gradient(180deg, #cd7f32 0%, #a05a20 100%);
+            border-color: #ffd700;
+        }
+
+        .ranking-position {
+            font-size: 2.2rem;
+            font-weight: 900;
+            width: 70px;
+            color: #fff;
+        }
+
+        .ranking-name {
+            flex: 1;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .ranking-score {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #ffd700;
+        }
+
+        .ranking-item:first-child .ranking-score,
+        .ranking-item:nth-child(2) .ranking-score {
+            color: #1a1a2e;
+        }
+
+        /* Final */
+        .final-content .ranking-title {
+            font-size: 3.5rem;
+        }
+
+        .final-content .ranking-item:first-child {
+            padding: 24px 32px;
+        }
+
+        .final-content .ranking-item:first-child .ranking-position {
+            font-size: 2.8rem;
+        }
+
+        .final-content .ranking-item:first-child .ranking-name,
+        .final-content .ranking-item:first-child .ranking-score {
+            font-size: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="start-overlay"
+        style="position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;text-align:center;">
+        <h1 style="color:#ffd700;font-size:3rem;margin-bottom:20px;text-shadow:0 0 20px rgba(255,215,0,0.5);">Clique
+            para Iniciar</h1>
+        <p style="color:#fff;font-size:1.5rem;">Habilitar áudio e tela cheia</p>
+    </div>
+
+    <div class="main-layout">
+        <div class="content-side">
+            <!-- Waiting -->
+            <div id="waiting" class="waiting-content">
+                <h1 class="waiting-title">Quiz Show</h1>
+                <p class="waiting-pin-label">Entre com o PIN:</p>
+                <div class="waiting-pin" id="pin">------</div>
+                <p class="waiting-url" id="url"></p>
+                <p class="waiting-players" id="player-count">Aguardando jogadores...</p>
+            </div>
+
+            <!-- Question -->
+            <div id="question" class="hidden">
+                <div class="pin-corner">PIN: <span class="current-pin-display"></span></div>
+                <div class="question-box">
+                    <p class="question-header">Pergunta <span id="q-index">1</span> de <span id="q-total">5</span></p>
+                    <p class="question-text" id="q-text"></p>
+                </div>
+                <div class="options-list" id="q-options"></div>
+
+                <div class="timer-container">
+                    <div class="timer" id="timer">30</div>
+                </div>
+            </div>
+
+            <!-- Ranking -->
+            <div id="ranking" class="ranking-content hidden">
+                <div class="pin-corner" style="position:fixed; top:20px; right:20px;">PIN: <span
+                        class="current-pin-display"></span></div>
+                <h2 class="ranking-title">Ranking</h2>
+                <ul class="ranking-list" id="ranking-list"></ul>
+            </div>
+
+            <!-- Final -->
+            <div id="final" class="ranking-content final-content hidden">
+                <h2 class="ranking-title">Resultado Final</h2>
+                <ul class="ranking-list" id="final-ranking"></ul>
+            </div>
+        </div>
+
+        <div class="presenter-side">
+            <!-- Substitua o src pela imagem do apresentador -->
+            <img src="/presenter.png" alt="Apresentador" class="presenter-image"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="presenter-placeholder" style="display:none;">Adicione presenter.png</div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let timerInterval = null;
+        let suspenseAudio = null;
+
+        const $waiting = document.getElementById('waiting');
+        const $question = document.getElementById('question');
+        const $ranking = document.getElementById('ranking');
+        const $final = document.getElementById('final');
+
+        // Autoplay policy fix
+        document.getElementById('start-overlay').onclick = function () {
+            this.style.display = 'none';
+            // Unlock audio context
+            const audio = new Audio();
+            audio.play().catch(() => { });
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const pin = urlParams.get('pin');
+
+        if (pin) {
+            socket.emit('display:join', { pin });
+        }
+
+        socket.on('display:joined', ({ pin, players, currentQuestion, ranking, isRestored }) => {
+            document.getElementById('pin').textContent = pin;
+            // Update all small pin displays
+            document.querySelectorAll('.current-pin-display').forEach(el => el.textContent = pin);
+
+            document.getElementById('url').textContent = window.location.origin + '/player.html?pin=' + pin;
+            updatePlayerCount(players.length);
+
+            // If we join mid-game or restored
+            if (isRestored) {
+                showScreen('ranking');
+                renderRanking('ranking-list', ranking);
+            }
+        });
+
+        socket.on('display:error', (msg) => {
+            alert(msg);
+        });
+
+        socket.on('host:playerJoined', ({ players }) => {
+            updatePlayerCount(players.length);
+        });
+
+        socket.on('game:question', ({ index, total, question, options, timeLimit }) => {
+            showScreen('question');
+            document.getElementById('q-index').textContent = index + 1;
+            document.getElementById('q-total').textContent = total;
+            document.getElementById('q-text').textContent = question;
+            document.getElementById('q-options').innerHTML = options
+                .map((opt, i) => `
+          <div class="option-item" id="option-${i}">
+            <div class="option-number">${i + 1}</div>
+            <div class="option-text">${opt}</div>
+          </div>
+        `).join('');
+
+            // Clear any revealed state
+            document.getElementById('q-options').classList.remove('revealed');
+
+            // Show timer
+            document.querySelector('.timer-container').classList.remove('hidden');
+
+            startTimer(timeLimit);
+
+            // Play audio
+            const questionAudio = new Audio('/question.mp3');
+            questionAudio.volume = 0.8;
+            questionAudio.play().catch(e => console.log('Audio error:', e));
+
+            if (suspenseAudio) {
+                suspenseAudio.pause();
+                suspenseAudio.currentTime = 0;
+            }
+            suspenseAudio = new Audio('/suspense.mp3');
+            suspenseAudio.volume = 0.3; // Lower volume for background
+            suspenseAudio.loop = true;
+            suspenseAudio.play().catch(e => console.log('Audio error:', e));
+        });
+
+        socket.on('game:reveal', ({ correct }) => {
+            stopTimer();
+
+            // Hide timer immediately
+            document.querySelector('.timer-container').classList.add('hidden');
+
+            // Stop suspense audio
+            if (suspenseAudio) {
+                suspenseAudio.pause();
+                suspenseAudio.currentTime = 0;
+            }
+
+            // Audio sequence
+            const playSequence = async () => {
+                try {
+                    const endAudio = new Audio('/end.mp3');
+                    endAudio.volume = 0.8;
+                    await endAudio.play();
+
+                    endAudio.onended = async () => {
+                        try {
+                            const randomFala = Math.floor(Math.random() * 5) + 1;
+                            const falaAudio = new Audio(`/falas/fala${randomFala}.mp3`);
+                            falaAudio.volume = 1.0; // Voice should be prominent
+                            await falaAudio.play();
+
+                            falaAudio.onended = () => {
+                                // Reveal answer visually only after all audio ends
+                                const optionsList = document.getElementById('q-options');
+                                optionsList.classList.add('revealed');
+                                const correctOption = document.getElementById(`option-${correct}`);
+                                if (correctOption) {
+                                    correctOption.classList.add('correct-answer');
+                                }
+
+                                // Notify server to show feedback to players
+                                socket.emit('display:triggerReveal', { pin });
+
+                                // Wait a moment for visual impact then proceed
+                                setTimeout(() => {
+                                    socket.emit('display:audioEnded', { pin });
+                                }, 2000);
+                            };
+                        } catch (e) {
+                            console.error("Fala play error", e);
+                            socket.emit('display:audioEnded', { pin });
+                        }
+                    };
+                } catch (e) {
+                    console.error("End play error", e);
+                    try {
+                        const randomFala = Math.floor(Math.random() * 5) + 1;
+                        const falaAudio = new Audio(`/falas/fala${randomFala}.mp3`);
+                        falaAudio.volume = 1.0;
+                        await falaAudio.play();
+                        falaAudio.onended = () => {
+                            // Reveal if first audio failed
+                            const optionsList = document.getElementById('q-options');
+                            optionsList.classList.add('revealed');
+                            const correctOption = document.getElementById(`option-${correct}`);
+                            if (correctOption) {
+                                correctOption.classList.add('correct-answer');
+                            }
+                            setTimeout(() => { socket.emit('display:audioEnded', { pin }); }, 2000);
+                        };
+                    } catch (e2) {
+                        socket.emit('display:audioEnded', { pin });
+                    }
+                }
+            };
+
+            playSequence();
+        });
+
+        socket.on('game:ranking', ({ ranking }) => {
+            stopTimer();
+            showScreen('ranking');
+            renderRanking('ranking-list', ranking);
+        });
+
+        socket.on('game:final', ({ ranking }) => {
+            stopTimer();
+            showScreen('final');
+            renderRanking('final-ranking', ranking);
+        });
+
+        function updatePlayerCount(count) {
+            document.getElementById('player-count').textContent =
+                count === 0 ? 'Aguardando jogadores...' :
+                    count === 1 ? '1 jogador conectado' :
+                        count + ' jogadores conectados';
+        }
+
+        function startTimer(seconds) {
+            stopTimer();
+            const endTime = Date.now() + seconds * 1000;
+            const timerEl = document.getElementById('timer');
+
+            function update() {
+                const now = Date.now();
+                const remaining = Math.ceil((endTime - now) / 1000);
+
+                if (remaining >= 0) {
+                    timerEl.textContent = remaining;
+                    timerInterval = requestAnimationFrame(update);
+                } else {
+                    timerEl.textContent = 0;
+                    stopTimer();
+                }
+            }
+
+            update();
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                cancelAnimationFrame(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function renderRanking(elementId, ranking) {
+            document.getElementById(elementId).innerHTML = ranking
+                .map((p, i) => `
+          <li class="ranking-item">
+            <span class="ranking-position">${i + 1}º</span>
+            <span class="ranking-name">${p.name}</span>
+            <span class="ranking-score">${p.score} pts</span>
+          </li>
+        `).join('');
+        }
+
+        function showScreen(screen) {
+            $waiting.classList.add('hidden');
+            $question.classList.add('hidden');
+            $ranking.classList.add('hidden');
+            $final.classList.add('hidden');
+            document.getElementById(screen).classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>
