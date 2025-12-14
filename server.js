@@ -493,15 +493,15 @@ io.on('connection', (socket) => {
     } else if (room.currentQuestion >= 0 && room.currentQuestion < QUIZ.length) {
       if (room.timer) {
         // Quiz já iniciou e está ativo, enviar pergunta atual com tempo ajustado
-        const q = QUIZ[room.currentQuestion];
+      const q = QUIZ[room.currentQuestion];
         const elapsed = (Date.now() - room.questionStartTime) / 1000;
         const remaining = Math.max(0, TIME_LIMIT - elapsed);
 
-        socket.emit('game:question', {
-          index: room.currentQuestion,
-          total: QUIZ.length,
-          question: q.question,
-          options: q.options,
+      socket.emit('game:question', {
+        index: room.currentQuestion,
+        total: QUIZ.length,
+        question: q.question,
+        options: q.options,
           timeLimit: remaining
         });
       } else {
@@ -580,15 +580,15 @@ io.on('connection', (socket) => {
     // If active question (timer running) and not answered, send question
     if (room.currentQuestion >= 0 && !room.answers[sessionId]) {
       if (room.timer) {
-        const q = QUIZ[room.currentQuestion];
+      const q = QUIZ[room.currentQuestion];
         const elapsed = (Date.now() - room.questionStartTime) / 1000;
         const remaining = Math.max(0, TIME_LIMIT - elapsed);
 
-        socket.emit('game:question', {
-          index: room.currentQuestion,
-          total: QUIZ.length,
-          question: q.question,
-          options: q.options,
+      socket.emit('game:question', {
+        index: room.currentQuestion,
+        total: QUIZ.length,
+        question: q.question,
+        options: q.options,
           timeLimit: remaining
         });
       } else if (!isRestored) {
