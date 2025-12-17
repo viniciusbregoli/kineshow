@@ -354,7 +354,7 @@
             <ul class="ranking-list" id="live-ranking-list"></ul>
           </div>
 
-          <button class="btn btn-primary" id="btn-next">Ver Ranking Final da Rodada</button>
+
         </div>
 
         <!-- Right Column: Upcoming Questions -->
@@ -574,7 +574,7 @@
       document.getElementById('qr-code').innerHTML = '';
       document.getElementById('display-link').href = `${window.location.origin}/display.html?pin=${pin}`;
 
-      const url = `${window.location.origin}/player.html?pin=${pin}`;
+      const url = `${window.location.origin}/player.html`;
       new QRCode(document.getElementById('qr-code'), {
         text: url,
         width: 180,
@@ -748,9 +748,7 @@
       socket.emit('host:start', { pin: currentPin });
     };
 
-    document.getElementById('btn-next').onclick = () => {
-      socket.emit('host:next', { pin: currentPin });
-    };
+
 
     document.getElementById('btn-continue').onclick = () => {
       socket.emit('host:nextQuestion', { pin: currentPin });

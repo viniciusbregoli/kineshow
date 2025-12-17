@@ -1,86 +1,66 @@
-# Quiz Show (Kinelhão)
+# Quiz Show (Kineshow)
 
-Este é um sistema de Quiz em tempo real estilo "Kahoot" ou "Show do Milhão". O sistema permite um apresentador (Host), uma tela de projeção (Display) e múltiplos jogadores conectados via celular (Players).
+This is a real-time Quiz system similar to Kahoot. It consists of a Host panel, a Display screen for projection, and a Player interface for participants.
 
-## Funcionalidades
+## Prerequisites
 
-- **Multiplayer em Tempo Real**: Suporte para múltiplos jogadores simultâneos.
-- **Três Interfaces**:
-  - **Host**: Painel de controle para iniciar o jogo, gerenciar perguntas, ver ranking em tempo real e kickar jogadores.
-  - **Display**: Tela visual para projetor/TV com animações, perguntas e sons.
-  - **Player**: Interface mobile para os participantes responderem.
-- **Resiliência e Reconexão**:
-  - Jogadores podem reconectar e recuperar sua pontuação caso a internet caia ou a página recarregue.
-  - Novos jogadores podem entrar no meio da partida.
-  - O Host pode recarregar a página sem perder o controle da sessão.
-- **Sistema de Saves**: O progresso do jogo é salvo automaticamente a cada pergunta. Em caso de falha no servidor, é possível carregar o jogo exatamente de onde parou.
-- **Áudio Imersivo**: Integração com efeitos sonoros e falas (requer arquivos de áudio na pasta `public`).
+- Node.js installed on the server machine.
 
-## 📋 Pré-requisitos
+## Installation
 
-- [Node.js](https://nodejs.org/) instalado.
-
-## 🛠️ Instalação
-
-1. Clone o repositório ou baixe os arquivos.
-2. Navegue até a pasta do projeto:
-   ```bash
-   cd kahoot-clone
-   ```
-3. Instale as dependências:
+1. Navigate to the project folder.
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-##  Como Rodar
+## How to Run
 
-1. Inicie o servidor:
+1. Start the server:
    ```bash
    npm start
    ```
-   Ou:
-   ```bash
-   node server.js
-   ```
+2. The server runs on port 3000 by default.
 
-2. O servidor iniciará na porta 3000 (padrão).
+## Usage
 
-## 🎮 Como Jogar
+### 1. Host (Control Panel)
+- Access: `http://localhost:3000/host.html`
+- Use this panel to create new games, manage players, and advance questions.
 
-### 1. Host (Controlador)
-- Acesse: `http://localhost:3000/host.html` no seu computador/tablet.
-- Clique em **"Criar Novo Jogo"**.
-- Um **PIN** será gerado.
-- Compartilhe o QR Code ou o PIN com os jogadores.
-- Quando todos estiverem conectados, clique em **"Iniciar Quiz"**.
+### 2. Display (Projection Screen)
+- Access: `http://localhost:3000/display.html`
+- Open this on a separate screen or projector. Click anywhere on the page once to enable audio and full-screen mode.
 
-### 2. Display (Telão)
-- No painel do Host, clique em **"Abrir Tela de Projeção"**.
-- Mova essa janela para o projetor ou segunda tela.
-- **Importante**: Clique na tela uma vez para habilitar o áudio (política de autoplay dos navegadores).
+### 3. Player (Participants)
+- Access: `http://localhost:3000/player.html`
+- Players enter the PIN shown on the Host/Display screen and their name to join.
 
-### 3. Players (Jogadores)
-- Acessem: `http://localhost:3000/player.html` (ou escaneiem o QR Code).
-- Digitem o **PIN** e um **Nome**.
-- Aguardem o início da rodada.
+## Customization
 
-## Recuperação de Jogo (Crash Recovery)
+### Changing Questions
+All quiz data is stored in `quiz.json` at the project root. You can modify this file to change questions, options, correct answers, and associated images.
 
-### Se o Servidor Reiniciar:
-1. No **Host**, clique em **"Carregar Jogo Salvo"**.
-2. Selecione o arquivo com o PIN correspondente à sessão anterior.
-3. Os jogadores devem acessar a página de Player, clicar em **"Reconectar Jogador Antigo"**, digitar o PIN e selecionar seu nome na lista.
+### Changing Images
+- All images must be placed in the `public/assets/` directory.
+- Question Images: Update the `image` field in `quiz.json` for the specific question. Example: `"image": "/assets/my-image.jpg"`.
+- Presenter Image: Replace or update `public/assets/presenter.png`. If you use a different filename, update the default path in `public/display.html`.
 
-### Se um Jogador Cair:
-1. Basta recarregar a página. O sistema tentará reconectar automaticamente.
-2. Se não funcionar, use a opção **"Reconectar Jogador Antigo"** na tela inicial do Player.
+### Changing Audio
+- All audio files are located in `public/audios/`.
+- Replace `end.mp3`, `question.mp3`, or `suspense.mp3` with your own files maintaining the same filenames.
+- Voice clips are found in `public/audios/falas/`.
 
-## Estrutura de Arquivos
+## Network Settings and Local Environment
 
-- `server.js`: Lógica principal do servidor e Socket.IO.
-- `public/`: Arquivos de frontend.
-  - `host.html`: Painel do apresentador.
-  - `display.html`: Tela de projeção.
-  - `player.html`: Tela do jogador.
-  - `falas/`: Áudios de narração (não incluídos no repo padrão).
-- `saves/`: Arquivos JSON com o estado dos jogos salvos.
+### Running on a Local Network
+To allow other devices (like smartphones) to connect:
+1. Find your computer's local IP address (e.g., 192.168.1.10).
+2. Ensure the devices are on the same Wi-Fi network.
+3. Players should access: `http://[YOUR_IP]:3000/player.html`.
+
+### Using the QR Code
+The QR Code generated in the Host lobby points to `/player.html`. For it to work on other devices, you must access the Host panel using your local IP instead of localhost (e.g., `http://192.168.1.10:3000/host.html`). This ensures the generated QR Code uses the reachable IP address.
+
+## Game Persistence
+The system saves the game state automatically in the `saves/` directory. If the server restarts, the Host can load a previous session via the "Carregar Jogo Salvo" button.

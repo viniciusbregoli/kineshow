@@ -434,9 +434,9 @@
 
         <div class="presenter-side">
             <!-- Substitua o src pela imagem do apresentador -->
-            <img src="/presenter.png" alt="Apresentador" class="presenter-image"
+            <img src="/assets/presenter.png" alt="Apresentador" class="presenter-image"
                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="presenter-placeholder" style="display:none;">Adicione presenter.png</div>
+            <div class="presenter-placeholder" style="display:none;">Adicione presenter.png em /assets/</div>
         </div>
     </div>
 
@@ -488,8 +488,20 @@
             updatePlayerCount(players.length);
         });
 
-        socket.on('game:question', ({ index, total, question, options, timeLimit }) => {
+        socket.on('game:question', ({ index, total, question, options, image, timeLimit }) => {
             showScreen('question');
+
+            // Update image
+            const presenterImg = document.querySelector('.presenter-image');
+            const presenterPlaceholder = document.querySelector('.presenter-placeholder');
+            if (image) {
+                presenterImg.src = image;
+                presenterImg.style.display = 'block';
+                presenterPlaceholder.style.display = 'none';
+            } else {
+                presenterImg.src = '/assets/presenter.png'; // Default
+            }
+
             document.getElementById('q-index').textContent = index + 1;
             document.getElementById('q-total').textContent = total;
             document.getElementById('q-text').textContent = question;
@@ -510,7 +522,7 @@
             startTimer(timeLimit);
 
             // Play audio
-            const questionAudio = new Audio('/question.mp3');
+            const questionAudio = new Audio('/audios/question.mp3');
             questionAudio.volume = 0.8;
             questionAudio.play().catch(e => console.log('Audio error:', e));
 
@@ -518,7 +530,7 @@
                 suspenseAudio.pause();
                 suspenseAudio.currentTime = 0;
             }
-            suspenseAudio = new Audio('/suspense.mp3');
+            suspenseAudio = new Audio('/audios/suspense.mp3');
             suspenseAudio.volume = 0.3; // Lower volume for background
             suspenseAudio.loop = true;
             suspenseAudio.play().catch(e => console.log('Audio error:', e));
@@ -539,14 +551,14 @@
             // Audio sequence
             const playSequence = async () => {
                 try {
-                    const endAudio = new Audio('/end.mp3');
+                    const endAudio = new Audio('/audios/end.mp3');
                     endAudio.volume = 0.8;
                     await endAudio.play();
 
                     endAudio.onended = async () => {
                         try {
                             const randomFala = Math.floor(Math.random() * 5) + 1;
-                            const falaAudio = new Audio(`/falas/fala${randomFala}.mp3`);
+                            const falaAudio = new Audio(`/audios/falas/fala${randomFala}.mp3`);
                             falaAudio.volume = 1.0; // Voice should be prominent
                             await falaAudio.play();
 
@@ -576,7 +588,7 @@
                     console.error("End play error", e);
                     try {
                         const randomFala = Math.floor(Math.random() * 5) + 1;
-                        const falaAudio = new Audio(`/falas/fala${randomFala}.mp3`);
+                        const falaAudio = new Audio(`/audios/falas/fala${randomFala}.mp3`);
                         falaAudio.volume = 1.0;
                         await falaAudio.play();
                         falaAudio.onended = () => {

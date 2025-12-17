@@ -34,34 +34,28 @@ function saveScores(room, pin) {
   fs.writeFileSync(filename, JSON.stringify(data, null, 2));
 }
 
-// Quiz hardcoded
-const QUIZ = [
-  {
-    question: "Qual é o maior planeta do Sistema Solar?",
-    options: ["Terra", "Marte", "Júpiter", "Saturno"],
-    correct: 2
-  },
-  {
-    question: "Em que ano o Brasil foi descoberto?",
-    options: ["1492", "1500", "1822", "1889"],
-    correct: 1
-  },
-  {
-    question: "Qual elemento químico tem o símbolo 'O'?",
-    options: ["Ouro", "Oxigênio", "Ósmio", "Ônio"],
-    correct: 1
-  },
-  {
-    question: "Quantos lados tem um hexágono?",
-    options: ["4", "5", "6", "8"],
-    correct: 2
-  },
-  {
-    question: "Qual a capital da França?",
-    options: ["Londres", "Berlim", "Madrid", "Paris"],
-    correct: 3
+// Quiz load from file
+const QUIZ_FILE = path.join(__dirname, 'quiz.json');
+let QUIZ = [];
+
+function loadQuiz() {
+  try {
+    if (fs.existsSync(QUIZ_FILE)) {
+      const data = fs.readFileSync(QUIZ_FILE, 'utf8');
+      QUIZ = JSON.parse(data);
+      console.log(`Quiz carregado com sucesso: ${QUIZ.length} perguntas.`);
+    } else {
+      console.error('Arquivo quiz.json não encontrado!');
+      // Fallback empty or default
+      QUIZ = [];
+    }
+  } catch (err) {
+    console.error('Erro ao carregar quiz.json:', err);
+    QUIZ = [];
   }
-];
+}
+
+loadQuiz();
 
 const TIME_LIMIT = 30; // segundos por pergunta
 
@@ -140,6 +134,7 @@ function startQuestion(room, pin) {
     total: QUIZ.length,
     question: q.question,
     options: q.options,
+    image: q.image, // New field
     timeLimit: TIME_LIMIT
   });
 
@@ -384,12 +379,16 @@ io.on('connection', (socket) => {
     if (room.currentQuestion >= 0 && (room.timer || room.rankingTimer)) {
       // ... (existing logic to resend question)
       const q = QUIZ[room.currentQuestion];
+      const elapsed = (Date.now() - room.questionStartTime) / 1000;
+      const remaining = Math.max(0, TIME_LIMIT - elapsed);
+
       socket.emit('game:question', {
         index: room.currentQuestion,
         total: QUIZ.length,
         question: q.question,
         options: q.options,
-        timeLimit: TIME_LIMIT
+        image: q.image,
+        timeLimit: remaining
       });
     }
   });
@@ -493,15 +492,16 @@ io.on('connection', (socket) => {
     } else if (room.currentQuestion >= 0 && room.currentQuestion < QUIZ.length) {
       if (room.timer) {
         // Quiz já iniciou e está ativo, enviar pergunta atual com tempo ajustado
-      const q = QUIZ[room.currentQuestion];
+        const q = QUIZ[room.currentQuestion];
         const elapsed = (Date.now() - room.questionStartTime) / 1000;
         const remaining = Math.max(0, TIME_LIMIT - elapsed);
 
-      socket.emit('game:question', {
-        index: room.currentQuestion,
-        total: QUIZ.length,
-        question: q.question,
-        options: q.options,
+        socket.emit('game:question', {
+          index: room.currentQuestion,
+          total: QUIZ.length,
+          question: q.question,
+          options: q.options,
+          image: q.image,
           timeLimit: remaining
         });
       } else {
@@ -580,15 +580,16 @@ io.on('connection', (socket) => {
     // If active question (timer running) and not answered, send question
     if (room.currentQuestion >= 0 && !room.answers[sessionId]) {
       if (room.timer) {
-      const q = QUIZ[room.currentQuestion];
+        const q = QUIZ[room.currentQuestion];
         const elapsed = (Date.now() - room.questionStartTime) / 1000;
         const remaining = Math.max(0, TIME_LIMIT - elapsed);
 
-      socket.emit('game:question', {
-        index: room.currentQuestion,
-        total: QUIZ.length,
-        question: q.question,
-        options: q.options,
+        socket.emit('game:question', {
+          index: room.currentQuestion,
+          total: QUIZ.length,
+          question: q.question,
+          options: q.options,
+          image: q.image, // Added image field
           timeLimit: remaining
         });
       } else if (!isRestored) {
