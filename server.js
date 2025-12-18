@@ -64,7 +64,7 @@ const rooms = {};
 const sessions = {}; // sessionId -> { pin, name, socketId }
 
 function generatePin() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 function generateSessionId() {
@@ -318,6 +318,10 @@ io.on('connection', (socket) => {
       .sort((a, b) => b.score - a.score);
 
     let currentQ = null;
+    const isActive = !!room.timer; // If timer is running, question is active.
+
+    // Only send question data/context if we are technically in a question (active or finished but not next yet)
+    // But importantly, tell the frontend if it's ACTIVE (timer running) or WAITING (ranking)
     if (room.currentQuestion >= 0 && room.currentQuestion < QUIZ.length) {
       const q = QUIZ[room.currentQuestion];
       currentQ = {
@@ -334,7 +338,8 @@ io.on('connection', (socket) => {
       answerCount: Object.keys(room.answers).length,
       ranking,
       questionData: currentQ,
-      allQuestions: QUIZ
+      allQuestions: QUIZ,
+      questionActive: isActive
     });
   });
 
@@ -357,7 +362,7 @@ io.on('connection', (socket) => {
     // And we want to show ranking.
     // We can infer this if timer is null but we have questions >= 0
 
-    const isRestored = (room.currentQuestion >= -1 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
+    const isRestored = (room.currentQuestion >= 0 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
 
     // Calculate ranking to send if needed
     let ranking = [];
@@ -477,7 +482,7 @@ io.on('connection', (socket) => {
     }
 
     // Determine restore state
-    const isRestored = (room.currentQuestion >= -1 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
+    const isRestored = (room.currentQuestion >= 0 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
 
     if (isRestored) {
       // Send restored state to new player
@@ -566,7 +571,7 @@ io.on('connection', (socket) => {
     const player = room.players[sessionId];
 
     // Determine restore state
-    const isRestored = (room.currentQuestion >= -1 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
+    const isRestored = (room.currentQuestion >= 0 && !room.timer && !room.rankingTimer && room.questionStartTime === null);
 
     socket.emit('player:reconnected', {
       name: player.name,
@@ -698,6 +703,40 @@ io.on('connection', (socket) => {
     if (!room) return;
     room.currentQuestion++;
     startQuestion(room, pin);
+  });
+
+  // Host encerra a sessão
+  socket.on('host:endSession', ({ pin }) => {
+    const room = rooms[pin];
+    if (!room) return;
+
+    console.log(`Encerrando sessão para PIN ${pin}`);
+
+    // Notify all clients first
+    io.to(pin).emit('game:sessionEnded');
+
+    // Force disconnect players and clean up sessions
+    Object.keys(room.players).forEach(sid => {
+      const session = sessions[sid];
+      if (session && session.socketId) {
+        const s = io.sockets.sockets.get(session.socketId);
+        if (s) {
+          s.leave(pin);
+          // Optional: s.disconnect(); // Don't disconnect socket, just let client handle UI reset
+          s.pin = null;
+          s.sessionId = null;
+        }
+      }
+      delete sessions[sid];
+    });
+
+    // Cleanup room
+    delete rooms[pin];
+
+    // Cleanup host socket from room state
+    socket.leave(pin);
+    socket.pin = null;
+    socket.isHost = false;
   });
 
   socket.on('disconnect', () => {

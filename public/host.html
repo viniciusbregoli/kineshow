@@ -286,6 +286,12 @@
 </head>
 
 <body>
+  <div id="control-panel" style="position:fixed; top:20px; right:20px; z-index:1000; display:none;">
+    <button onclick="endSession()"
+      style="background:#c41e3a; color:white; border:none; padding:10px 15px; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.5); font-family:inherit; text-transform:uppercase; font-size:0.9rem;">
+      ❌ Encerrar Sessão
+    </button>
+  </div>
   <div class="container">
     <h1>Quiz Show</h1>
 
@@ -320,9 +326,7 @@
 
     <!-- Lobby -->
     <div id="lobby" class="card hidden">
-      <div id="qr-container">
-        <div id="qr-code"></div>
-      </div>
+
       <p style="text-align:center;color:rgba(255,255,255,0.7);margin-bottom:8px;text-transform:uppercase;">PIN da Sala
       </p>
       <div class="pin-display" id="pin"></div>
@@ -336,6 +340,16 @@
       <div class="players-list" id="players"></div>
 
       <button class="btn btn-primary" id="btn-start" disabled>Iniciar Quiz</button>
+
+      <div style="margin-top:40px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
+        <h3 style="color:#ffd700; margin-bottom:15px; font-size:1.2rem; text-transform:uppercase; text-align:center;">
+          Resumo do Quiz</h3>
+        <div id="lobby-questions-list"
+          style="max-height:300px; overflow-y:auto; background:rgba(0,0,0,0.2); border-radius:12px; padding:15px; border:1px solid rgba(255,255,255,0.1);">
+          <!-- Populated via JS -->
+          <p style="text-align:center; color:#aaa;">Carregando perguntas...</p>
+        </div>
+      </div>
     </div>
 
     <!-- Pergunta ativa (Host View) -->
@@ -365,6 +379,12 @@
           <div id="upcoming-list" style="overflow-y:auto; flex:1; padding-right:5px;">
             <!-- Populated via JS -->
           </div>
+
+          <!-- Force End Button -->
+          <button class="btn btn-primary" onclick="forceNext()"
+            style="margin-top:20px; background:linear-gradient(180deg, #c41e3a 0%, #8b0000 100%); border-color:#ff6b6b;">
+            Encerrar Pergunta
+          </button>
         </div>
 
       </div>
@@ -499,30 +519,42 @@
       updatePersistentLink(pin);
       setupLobby(pin);
       showScreen('lobby');
+      document.getElementById('control-panel').style.display = 'block';
     });
 
-    socket.on('host:reconnected', ({ pin, players, currentQuestion, totalQuestions, answerCount, ranking, questionData, allQuestions: qs, isRestored }) => {
+    socket.on('game:sessionEnded', () => {
+      localStorage.removeItem('hostPin');
+      currentPin = '';
+      playersData = [];
+      location.reload(); // Simplest way to reset everything for host
+    });
+
+    window.endSession = () => {
+      if (confirm('Tem certeza que deseja encerrar a sessão atual? Todos os jogadores serão desconectados.')) {
+        socket.emit('host:endSession', { pin: currentPin });
+      }
+    };
+
+    socket.on('host:reconnected', ({ pin, players, currentQuestion, totalQuestions, answerCount, ranking, questionData, allQuestions: qs, isRestored, questionActive }) => {
       currentPin = pin;
       allQuestions = qs || [];
       updatePersistentLink(pin);
+      document.getElementById('control-panel').style.display = 'block';
 
       // Reconstruct simple player data from list if only names sent, or request full data if needed.
-      // For now we just use names to display something, though live ranking needs scores/status.
-      // The current host:reconnected event sends simple list of names for 'players' and full 'ranking'.
-      // We'll use 'ranking' to initialize our local playersData as it contains {name, score}.
       playersData = ranking.map(p => ({ ...p, answered: false }));
 
-      // Update question index display if possible (even if not showing question screen yet)
+      // Update question index display if possible
       const nextQ = currentQuestion + 1;
       // We can update the UI elements hidden or not
       document.getElementById('q-index').textContent = nextQ;
 
       if (currentQuestion < 0 && !isRestored) {
         setupLobby(pin);
-        updateLobbyPlayers(players);
+        updateLobbyPlayers(playersData); // Use playersData for richer info if available
         showScreen('lobby');
-      } else if (questionData) {
-        // Normal reconnect to active question
+      } else if (questionData && questionActive) {
+        // Active Question (Timer running)
         showScreen('question');
         document.getElementById('q-index').textContent = currentQuestion + 1;
         document.getElementById('q-total').textContent = totalQuestions;
@@ -530,13 +562,18 @@
         renderLiveRanking();
         renderUpcomingQuestions(currentQuestion);
       } else {
-        // Restored state (between questions) or just showing ranking
-        // Show ranking screen so host can click "Próxima Pergunta"
+        // Restored state OR Ranking phase (Timer ended)
         showScreen('ranking');
         renderRanking('ranking-list', ranking);
-        renderUpcomingQuestions(nextQ, 'upcoming-list-ranking');
+        // If we are in ranking, we technically finished 'currentQuestion', so next visual index is +1
+        // But for upcoming list, we want to show 'currentQuestion' as done.
+        renderUpcomingQuestions(currentQuestion + 1, 'upcoming-list-ranking');
       }
     });
+
+    window.forceNext = () => {
+      socket.emit('host:next', { pin: currentPin });
+    };
 
     // ... rest of code ...
 
@@ -571,17 +608,34 @@
 
     function setupLobby(pin) {
       document.getElementById('pin').textContent = pin;
-      document.getElementById('qr-code').innerHTML = '';
       document.getElementById('display-link').href = `${window.location.origin}/display.html?pin=${pin}`;
 
-      const url = `${window.location.origin}/player.html`;
-      new QRCode(document.getElementById('qr-code'), {
-        text: url,
-        width: 180,
-        height: 180,
-        colorDark: '#0a1628',
-        colorLight: '#ffffff'
-      });
+      renderLobbyQuestions();
+    }
+
+    function renderLobbyQuestions() {
+      const listEl = document.getElementById('lobby-questions-list');
+      if (!listEl) return;
+      if (!allQuestions || allQuestions.length === 0) {
+        listEl.innerHTML = '<p style="text-align:center; color:#aaa;">Nenhuma pergunta carregada.</p>';
+        return;
+      }
+
+      listEl.innerHTML = allQuestions.map((q, i) => `
+        <div style="padding:10px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; gap:15px; align-items:start;">
+          <div style="font-weight:900; color:#ffd700; font-size:1rem; min-width:25px;">${i + 1}.</div>
+          <div style="flex:1;">
+            <div style="font-weight:700; color:#fff; font-size:1rem; margin-bottom:5px;">${q.question}</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+              ${q.options.map((opt, optI) => `
+                <div style="font-size:0.8rem; padding:4px 8px; border-radius:4px; background:${optI === q.correct ? 'rgba(46, 204, 113, 0.2)' : 'rgba(255,255,255,0.05)'}; border:1px solid ${optI === q.correct ? '#2ecc71' : 'transparent'}; color:${optI === q.correct ? '#2ecc71' : '#aaa'};">
+                  ${opt}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
     }
 
     function updateLobbyPlayers(players) {

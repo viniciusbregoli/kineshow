@@ -397,7 +397,7 @@
       <div id="join-form">
         <div class="input-group">
           <label>PIN da Sala</label>
-          <input type="text" id="input-pin" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+          <input type="text" id="input-pin" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*">
         </div>
         <div class="input-group">
           <label>Seu Nome</label>
@@ -414,7 +414,7 @@
         <h3 style="text-align:center; color:#ffd700; margin-bottom:20px;">Reconectar</h3>
         <div class="input-group">
           <label>PIN da Sala</label>
-          <input type="text" id="reconnect-pin" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+          <input type="text" id="reconnect-pin" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*">
         </div>
         <button class="btn btn-primary" id="btn-find-profiles">Buscar Perfil</button>
         <button class="btn" id="btn-cancel-reconnect"
@@ -543,6 +543,12 @@
       errEl.textContent = msg;
       errEl.style.display = 'block';
       showScreen('join');
+    });
+
+    socket.on('game:sessionEnded', () => {
+      alert('A sessão foi encerrada pelo host.');
+      localStorage.removeItem('quizSession');
+      location.reload();
     });
 
     socket.on('player:joined', ({ name, sessionId: sid }) => {

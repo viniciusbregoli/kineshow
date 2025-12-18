@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz - Display</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;900&display=swap');
 
@@ -396,9 +397,18 @@
         <div class="content-side">
             <!-- Waiting -->
             <div id="waiting" class="waiting-content">
-                <h1 class="waiting-title">Quiz Show</h1>
+                <h1 class="waiting-title">KineShow do milhão</h1>
                 <p class="waiting-pin-label">Entre com o PIN:</p>
-                <div class="waiting-pin" id="pin">------</div>
+                <div class="waiting-pin" id="pin">----</div>
+                <div id="qr-container"
+                    style="background:#fff; padding:15px; border-radius:12px; display:inline-block; margin:20px auto;">
+                    <div id="qr-code"></div>
+                </div>
+                <div
+                    style="background:rgba(255,255,255,0.05); padding:20px 40px; border-radius:15px; border:2px dashed rgba(255,255,255,0.2); margin:30px auto; max-width:500px;">
+                    <h3 style="color:#ffd700; margin-bottom:10px; text-transform:uppercase;">Prepare-se!</h3>
+                    <p style="color:rgba(255,255,255,0.8);">O jogo começará em breve.</p>
+                </div>
                 <p class="waiting-url" id="url"></p>
                 <p class="waiting-players" id="player-count">Aguardando jogadores...</p>
             </div>
@@ -473,6 +483,20 @@
             document.getElementById('url').textContent = window.location.origin + '/player.html?pin=' + pin;
             updatePlayerCount(players.length);
 
+            // Generate QR Code
+            document.getElementById('qr-code').innerHTML = ''; // Clear existing
+            new QRCode(document.getElementById('qr-code'), {
+                text: `${window.location.origin}/player.html`, // Simplified URL for easier scanning, user has to enter pin manually? Or should we embed pin? Usually helpful to embed.
+                // Let's defer to user expectation. Usually players scan and type pin or scan full link.
+                // If I use the full link with pin parameter, the player.html code already handles it (lines 518-521).
+                // "text: window.location.origin + '/player.html?pin=' + pin,"
+                text: `${window.location.origin}/player.html?pin=${pin}`,
+                width: 200,
+                height: 200,
+                colorDark: '#0a1628',
+                colorLight: '#ffffff'
+            });
+
             // If we join mid-game or restored
             if (isRestored) {
                 showScreen('ranking');
@@ -482,6 +506,11 @@
 
         socket.on('display:error', (msg) => {
             alert(msg);
+        });
+
+        socket.on('game:sessionEnded', () => {
+            alert('A sessão foi encerrada.');
+            location.href = '/display.html'; // Reset to pure state
         });
 
         socket.on('host:playerJoined', ({ players }) => {
