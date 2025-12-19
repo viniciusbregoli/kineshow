@@ -1,57 +1,106 @@
 [
     {
-        "question": "Qual é o maior planeta do Sistema Solar?",
-        "options": [
-            "Terra",
-            "Marte",
-            "Júpiter",
-            "Saturno"
-        ],
+        "question": "Em quantos países a Kinebot entrou em 2025?",
+        "options": ["10", "9", "8", "7"],
         "correct": 2,
-        "image": "/assets/presenter.png"
+        "image": "/assets/caue.png"
     },
     {
-        "question": "Em que ano o Brasil foi descoberto?",
-        "options": [
-            "1492",
-            "1500",
-            "1822",
-            "1889"
-        ],
+        "question": "Quais clientes que realizamos visitas presenciais e convertemos em contrato?",
+        "options": ["3", "2", "1", "Nenhum"],
         "correct": 1,
-        "image": "/assets/presenter2.jpg"
+        "image": "/assets/moni.jpg"
     },
     {
-        "question": "Qual elemento químico tem o símbolo 'O'?",
-        "options": [
-            "Ouro",
-            "Oxigênio",
-            "Ósmio",
-            "Ônio"
-        ],
+        "question": "Na categoria geral do prêmio open Startups ficamos em qual posição?",
+        "options": ["14º", "17º", "1º", "4º"],
+        "correct": 0,
+        "image": "/assets/bia.jpg"
+    },
+    {
+        "question": "Qual o percentual das emissões de notas que foram automatizadas no conta azul?",
+        "options": ["52,46%", "52,58%", "52,64%", "52,68%"],
+        "correct": 0,
+        "image": "/assets/caue2.png"
+    },
+    {
+        "question": "Quantos webinar foram realizados no ano?",
+        "options": ["5", "4", "7", "3"],
         "correct": 1,
-        "image": "/assets/presenter.png"
+        "image": "/assets/anan.png"
     },
     {
-        "question": "Quantos lados tem um hexágono?",
+        "question": "Qual a cor da embalagem utilizada para as balinhas nos eventos?",
         "options": [
-            "4",
-            "5",
-            "6",
-            "8"
-        ],
-        "correct": 2,
-        "image": "/assets/presenter.png"
-    },
-    {
-        "question": "Qual a capital da França?",
-        "options": [
-            "Londres",
-            "Berlim",
-            "Madrid",
-            "Paris"
+            "Branco gelo",
+            "Branco baunilha",
+            "Branco neve",
+            "Branco pérola"
         ],
         "correct": 3,
-        "image": "/assets/presenter.png"
+        "image": "/assets/caue.png"
+    },
+    {
+        "question": "Qual é o nosso maior cliente em criação de ticket?",
+        "options": ["P&G", "Seguros Bolivar", "John Deere", "CNH"],
+        "correct": 1,
+        "image": "/assets/cami.jpg"
+    },
+    {
+        "question": "Qual foi a pontuação de NPS obtida pela equipe de Customer Success?",
+        "options": [
+            "95,93%",
+            "95,68%",
+            "95,76%",
+            "Nenhuma das respostas anteriores"
+        ],
+        "correct": 3,
+        "image": "/assets/caue2.png"
+    },
+    {
+        "question": "Quais são os níveis de formação do ergonomista Kinebot?",
+        "options": [
+            "Operador, Avaliador, Analista, Estrategista, Especialista, Gestor",
+            "Operacional, Avaliador, Condutor, Analisador, Especialista, Gerente",
+            "Operador, Avaliador, Analista, Condutor, Especialista,  Gerenciador",
+            "Avaliador, Profissional, Perito,  Consultor, Especialista Gestor"
+        ],
+        "correct": 0,
+        "image": "/assets/alison.png"
+    },
+    {
+        "question": "Qual o nível de formação que habilita o cliente a usar a plataforma Kinebot?",
+        "options": ["Especialista", "Analista", "Operador", "Avaliador"],
+        "correct": 2,
+        "image": "/assets/laura.jpg"
+    },
+    {
+        "question": "Os produtos Kinework, Kineflow e Kinemind, representam respectivamente:",
+        "options": [
+            "Ergonomia focando em NR-17, Questões psicossociais da NR-01 e Gestão com a NR-36",
+            "Ergonomia focando em NR-17, Processos de métodos e tempos e Avaliações psicossociais da NR-01",
+            "Questões psicossociais da NR-02, Ergonomia focando em NR-10 e Gestão de tempos",
+            "O gerenciamento de processos, Avaliações psicossociais da NR-01 e Ergonomia focando em NR-17"
+        ],
+        "correct": 1,
+        "image": "/assets/anaa.jpg"
+    },
+    {
+        "question": "Quantas funcionalidades mostradas em produto estão como 'Em Breve'?",
+        "options": ["10", "8", "11", "9"],
+        "correct": 3,
+        "image": "/assets/rodrigo.jpg"
+    },
+    {
+        "question": "Qual foi o número em porcentagem que assustou o Leonardo?",
+        "options": ["108%", "41%", "51%", "56%"],
+        "correct": 2,
+        "image": "/assets/leo.png"
+    },
+    {
+        "question": "Para o Kinebot UI (Design System) já foram lançados quantos componentes?",
+        "options": ["23", "27", "26", "25"],
+        "correct": 3,
+        "image": "/assets/alec.png"
     }
 ]
